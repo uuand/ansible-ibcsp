@@ -1,0 +1,13 @@
+ansible==2.9.10
+certifi==2020.6.20
+cffi==1.14.0
+cryptography==2.9.2
+ibcsp-ipamsvc @ git+https://git.metrosystems.net/NSS/ibcsp_ipamsvc.git@bd668d698693135c6d3f7bc8d72d193d7810b503
+Jinja2==2.11.2
+MarkupSafe==1.1.1
+pkg-resources==0.0.0
+pycparser==2.20
+python-dateutil==2.8.1
+PyYAML==5.3.1
+six==1.15.0
+urllib3==1.25.9

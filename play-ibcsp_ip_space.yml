@@ -1,0 +1,86 @@
+---
+- name: Test CSP IP Space via Ansible
+  hosts: all
+  connection: local
+  gather_facts: false
+
+  tasks:
+    - name: get hostname from ENV
+      set_fact:
+        apitoken: "{{ lookup('env','CSP_TOKEN')}}"
+
+    - name: ensure IP_Space is present
+      ibcsp_ip_space:
+        name: 'MCCRU-Ansible'
+        comment: 'MCC RU IP Space created through Ansible'
+        tags:
+          country: 'RU'
+          company: 'MCC'
+        state: present
+        csp_host: 'csp.infoblox.com'
+        csp_apitoken: "{{ apitoken }}"
+        csp_apiversion: '1'
+      register: result
+      delegate_to: localhost
+
+    - name: debug present IP_Space
+      debug:
+        var: result
+      when: debug_csp
+
+    - name: ensure IP_Space is still present
+      ibcsp_ip_space:
+        name: 'MCCRU-Ansible'
+        comment: 'MCC RU IP Space created through Ansible'
+        tags:
+          country: 'RU'
+          company: 'MCC'
+        state: present
+        csp_host: 'csp.infoblox.com'
+        csp_apitoken: "{{ apitoken }}"
+        csp_apiversion: '1'
+      register: result
+      delegate_to: localhost
+
+    - name: debug still present IP_Space
+      debug:
+        var: result
+      when: debug_csp
+
+    - name: ensure IP_Space is absent
+      ibcsp_ip_space:
+        name: 'MCCRU-Ansible'
+        comment: 'MCC RU IP Space created through Ansible'
+        tags:
+          country: 'RU'
+          company: 'MCC'
+        state: absent
+        csp_host: 'csp.infoblox.com'
+        csp_apitoken: "{{ apitoken }}"
+        csp_apiversion: '1'
+      register: result
+      delegate_to: localhost
+
+    - name: debug absent IP_Space
+      debug:
+        var: result
+      when: debug_csp
+
+    - name: ensure IP_Space is still absent
+      ibcsp_ip_space:
+        name: 'MCCRU-Ansible'
+        comment: 'MCC RU IP Space created through Ansible'
+        tags:
+          country: 'RU'
+          company: 'MCC'
+        state: absent
+        csp_host: 'csp.infoblox.com'
+        csp_apitoken: "{{ apitoken }}"
+        csp_apiversion: '1'
+      register: result
+      delegate_to: localhost
+
+    - name: debug still absent IP_Space
+      debug:
+        var: result
+      when: debug_csp
