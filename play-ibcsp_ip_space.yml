@@ -16,6 +16,9 @@
         tags:
           country: 'RU'
           company: 'MCC'
+        dhcp_config:
+          allow_unknown: true
+          lease_time: 43200
         state: present
         csp_host: 'csp.infoblox.com'
         csp_apitoken: "{{ apitoken }}"
@@ -35,6 +38,9 @@
         tags:
           country: 'RU'
           company: 'MCC'
+        dhcp_config:
+          allow_unknown: true
+          lease_time: 43200
         state: present
         csp_host: 'csp.infoblox.com'
         csp_apitoken: "{{ apitoken }}"
@@ -47,40 +53,40 @@
         var: result
       when: debug_csp
 
-    - name: ensure IP_Space is absent
-      ibcsp_ip_space:
-        name: 'MCCRU-Ansible'
-        comment: 'MCC RU IP Space created through Ansible'
-        tags:
-          country: 'RU'
-          company: 'MCC'
-        state: absent
-        csp_host: 'csp.infoblox.com'
-        csp_apitoken: "{{ apitoken }}"
-        csp_apiversion: '1'
-      register: result
-      delegate_to: localhost
+    # - name: ensure IP_Space is absent
+    #   ibcsp_ip_space:
+    #     name: 'MCCRU-Ansible'
+    #     comment: 'MCC RU IP Space created through Ansible'
+    #     tags:
+    #       country: 'RU'
+    #       company: 'MCC'
+    #     state: absent
+    #     csp_host: 'csp.infoblox.com'
+    #     csp_apitoken: "{{ apitoken }}"
+    #     csp_apiversion: '1'
+    #   register: result
+    #   delegate_to: localhost
 
-    - name: debug absent IP_Space
-      debug:
-        var: result
-      when: debug_csp
+    # - name: debug absent IP_Space
+    #   debug:
+    #     var: result
+    #   when: debug_csp
 
-    - name: ensure IP_Space is still absent
-      ibcsp_ip_space:
-        name: 'MCCRU-Ansible'
-        comment: 'MCC RU IP Space created through Ansible'
-        tags:
-          country: 'RU'
-          company: 'MCC'
-        state: absent
-        csp_host: 'csp.infoblox.com'
-        csp_apitoken: "{{ apitoken }}"
-        csp_apiversion: '1'
-      register: result
-      delegate_to: localhost
+    # - name: ensure IP_Space is still absent
+    #   ibcsp_ip_space:
+    #     name: 'MCCRU-Ansible'
+    #     comment: 'MCC RU IP Space created through Ansible'
+    #     tags:
+    #       country: 'RU'
+    #       company: 'MCC'
+    #     state: absent
+    #     csp_host: 'csp.infoblox.com'
+    #     csp_apitoken: "{{ apitoken }}"
+    #     csp_apiversion: '1'
+    #   register: result
+    #   delegate_to: localhost
 
-    - name: debug still absent IP_Space
-      debug:
-        var: result
-      when: debug_csp
+    # - name: debug still absent IP_Space
+    #   debug:
+    #     var: result
+    #   when: debug_csp
