@@ -92,8 +92,36 @@ def run_module():
     module_args = dict(
         name=dict(type='str', required=True),
         comment=dict(type='str', required=False),
-        dhcp_config=dict(type='str', required=False),
-        dhcp_options=dict(type='str', required=False),
+        dhcp_config=dict(type='dict',
+                        options=dict(
+                            allow_unknown=dict(
+                                type='bool',
+                                required=False
+                            ),
+                            filters=dict(
+                                type='list',
+                                elements='str'
+                            ),
+                            ignore_list=dict(
+                                type='list',
+                                elements='dict',
+                                options=dict(
+                                    type=dict(type='str', choices=['client_hex','client_text','hardware']),
+                                    value=dict(type='str')
+                                )
+                            ),
+                            lease_time=dict(type='int')
+                        )
+        ),
+        dhcp_options=dict(type='list',
+                        elements='dict',
+                        options=dict(
+                            group=dict(type='str'),
+                            option_code=dict(type='str'),
+                            option_value=dict(type='str'),
+                            type=dict(type='str')
+                        )
+        ),
         inheritance_sources=dict(type='str', required=False),
         tags=dict(type='dict', required=False),
         threshold=dict(type='str', required=False),
@@ -240,8 +268,6 @@ def module2IpamsvcIPSpace(module_args):
 
 def isdifferent(module, have, want):
     # only look for differences in certain keys
-    #debug = {'msg':{'want': str(want), 'have':str(have)}}
-    #module.fail_json(**debug)
     # IpamsvcIPSpace has a __eq__ , but it compares each field - even fields we can't set
     # so define the Fields of interest and compare them with a to_dict() variant
     f = ['name','comment','tags']
@@ -253,6 +279,8 @@ def isdifferent(module, have, want):
     for k, v in have.to_dict().items():
         if k in f:
             haveclean[k] = v
+    #debug = {'msg':{'want': str(wantclean), 'have':str(haveclean)}}
+    #module.fail_json(**debug)
     if haveclean == wantclean:
         return True
     else:

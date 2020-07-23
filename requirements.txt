@@ -2,7 +2,7 @@ ansible==2.9.10
 certifi==2020.6.20
 cffi==1.14.0
 cryptography==2.9.2
-ibcsp-ipamsvc @ git+https://git.metrosystems.net/NSS/ibcsp_ipamsvc.git@bd668d698693135c6d3f7bc8d72d193d7810b503
+ibcsp-ipamsvc @ git+https://github.com/uuand/ibcsp_ipamsvc.git@a17eb7a95d56768187008a5af7386b258a1587cd
 Jinja2==2.11.2
 MarkupSafe==1.1.1
 pkg-resources==0.0.0
