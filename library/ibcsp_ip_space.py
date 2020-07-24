@@ -297,10 +297,19 @@ def csp_post(module, api_instance, body):
         try:
             # Update the Object
             api_response = api_instance.ip_space_update('','', objectid ,body)
-            return api_response
+
         except ApiException as e:
             debug = {'msg':{'Message':'csp_post - Exception when calling IpSpaceApi->ip_space_update update of inheritance settings failed','Error':'{0}'.format(e)}}
             module.fail_json(**debug)
+
+        try:
+            # Read the Object with _inherit=full
+            api_response = api_instance.ip_space_list(filter=getfilter(module.params),inherit='full')
+            return api_response
+        except ApiException as e:
+            debug = {'msg':{'Message':'csp_post - Exception when calling IpSpaceApi->ip_space_list with filter {0}'.format(filterstr),'Error':'{0}'.format(e)}}
+            module.fail_json(**debug)
+
     else:
         debug = {'msg':{'Message':'csp_post - Exception when calling IpSpaceApi->ip_space_create update of inheritance settings failed','Error':'{0}'.format(e)}}
         module.fail_json(**debug)
@@ -334,7 +343,7 @@ def module2IpamsvcIPSpace(module, have=None):
                 inheritance_sources['dhcp_config'][k]['action'] = 'override'
                 if k != 'lease_time':
                     inheritance_sources['dhcp_config'][k]['value'] = v
-            else:
+            elif have != None:
                 inheritance_sources['dhcp_config'][k]['action'] = 'inherit'
 
     # assign module arguments as named parameters (defaults are set)
