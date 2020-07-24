@@ -24,14 +24,44 @@ options:
         description:
             - Name of the IP Space Object
         required: true
+        type: string
     comment:
         description:
             - A comment of the IP Space object
         required: false
+        type: string
     dhcp_config:
         description:
             - A shared DHCP configuration that controls how leases are issued.
         required: false
+        type: dict
+        suboptions:
+            allow_unknown:
+                description:
+                    - Disable to allow leases only for known clients, those for which a Fixed Address is configured.
+                type: bool
+            filters:
+                description:
+                    - List of Filter resource identifier.
+                type: list
+                suboptions:
+                    str:
+                        description:
+                            - Resource Identifier of a Filter
+                        type: string
+            ignore_list:
+                description:
+                    - List of clients to ignore requests from.
+                type: List
+                suboptions:
+                    type:
+                        description:
+                            - Type of ignore matching: client to ignore by client identifier (client hex or client text) or hardware to ignore by hardware identifier (MAC address). It can have one of the following values: [client_hex, client_text, hardware].
+                        type: string
+                    value:
+                        description:
+                            - Value to match.
+                        type: string
     dhcp_options:
         description:
             - A list of DHCP options. May be either a specific option or a group of options.
@@ -155,107 +185,158 @@ def run_module():
 
     # manipulate or modify the state as needed (this is going to be the
     # part where your module will do what it needs to do)
-    cspclient = csp_client(module.params)
+    cspconf = csp_configuration(module.params)
+    cspclient = csp_ipspaceclient(cspconf)
     fetch = csp_get(module, cspclient, getfilter(module.params))
     #api_response.results is a empty List if none was found
     if len(fetch.results) > 0:
         if module.params['state'] == 'present':
             #fetch.results[0] = IpamsvcIPSpace object and module2IpamsvcIPSpace = IpamsvcIPSpace
-            if isdifferent(module, fetch.results[0], module2IpamsvcIPSpace(module.params)):
-                body = module2IpamsvcIPSpace(module.params)
-                fetch = csp_put(module, cspclient, fetch.results[0].id, body)
+            if isdifferent(module, fetch.results[0], module2IpamsvcIPSpace(module, fetch)):
+                #debug = {'msg':{'isdifferent':'yeah'}}
+                #module.fail_json(**debug)
+                body = module2IpamsvcIPSpace(module, fetch)
+                fetch = csp_put(module, cspclient, fetch, body)
                 result['changed'] = True
-                result['result'] = fetch.result.to_dict()
+                result['result'] = fetch.results[0].to_dict()
             else:
                 result['result'] = fetch.results[0].to_dict()
+
         else:
             #delete
-            fetch = csp_delete(module, cspclient, fetch.results[0].id)
+            fetch = csp_delete(module, cspclient, fetch)
             result['changed'] = True
             result['result'] = ''
             result['msg'] = fetch['msg']
     else:
         if module.params['state'] == 'present':
             #try to create the resource
-            body = module2IpamsvcIPSpace(module.params)
+            body = module2IpamsvcIPSpace(module)
             fetch = csp_post(module, cspclient, body)
             result['changed'] = True
-            result['result'] = fetch.result.to_dict()
+            result['result'] = fetch.results[0].to_dict()
         else:
             result['msg'] = {'msg':'IpSpaceApi ip_space Object is absent'}
 
     module.exit_json(**result)
     
   
-def csp_client(module_args):
+def csp_configuration(module_args):
     cspurl = 'https://{0}/api/ddi/v{1}/'.format(module_args['csp_host'], module_args['csp_apiversion'])
     configuration = ibcsp_ipamsvc.Configuration(cspurl)
     configuration.api_key['Authorization'] = module_args['csp_apitoken']
     configuration.api_key_prefix['Authorization'] = 'Token'
+    return configuration
+
+def csp_ipspaceclient(configuration):
     api_instance = ibcsp_ipamsvc.IpSpaceApi(ibcsp_ipamsvc.ApiClient(configuration))
     return api_instance
 
-def csp_delete(module, api_instance, objectid):
+def csp_delete(module, api_instance, have):
+    objectid = have.results[0].id.rsplit('/')[2]
     try:
         # Deletion returns an empty response so we return a msg
         # fetch.results[0].id contains part of the path ipam/ip_space/6b11d4ea-cc20-11ea-b5c8-3670d2b79356
         # remove everything that is not the UUID
-        api_response = api_instance.ip_space_delete('ipam','ip_space', objectid.rsplit('/')[2])
+        api_response = api_instance.ip_space_delete('ipam','ip_space', objectid)
         api_response = {'msg':'IpSpaceApi ip_space Object deleted'}
         return api_response
     except ApiException as e:
-        debug = {'msg':{'Message':'Exception when calling IpSpaceApi->ip_space_delete with id {0}'.format(objectid.rsplit('/')[2]), 'Error':'{0}'.format(e)}}
+        debug = {'msg':{'Message':'csp_delete - Exception when calling IpSpaceApi->ip_space_delete with id {0}'.format(objectid), 'Error':'{0}'.format(e)}}
         module.fail_json(**debug)
 
 def csp_get(module, api_instance, filterstr):
     try:
         # Read One Address object by name attribute
-        api_response = api_instance.ip_space_list(filter=filterstr)
+        api_response = api_instance.ip_space_list(filter=filterstr, inherit='full')
         return api_response
     except ApiException as e:
-        debug = {'msg':{'Message':'Exception when calling IpSpaceApi->ip_space_list with filter {0}'.format(filterstr),'Error':'{0}'.format(e)}}
+        debug = {'msg':{'Message':'csp_get - Exception when calling IpSpaceApi->ip_space_list with filter {0}'.format(filterstr),'Error':'{0}'.format(e)}}
         module.fail_json(**debug)
 
 def csp_put(module, api_instance, objectid, body):
+    # update does not return the full object ?_inherit=full so we need to read once more
+    objectid = objectid.results[0].id.rsplit('/')[2]
+    filterstr = getfilter(module.params)
+    try:
+        api_response = api_instance.ip_space_update('ipam','ip_space', objectid, body)
+    except ApiException as e:
+        debug = {'msg':{'Message':'csp_put - Exception when calling IpSpaceApi->ip_space_update with id {0}'.format(objectid), 'Error':'{0}'.format(e)}}
+        module.fail_json(**debug)
+
     try:
         # Read One Address object by name attribute
-        api_response = api_instance.ip_space_update('ipam','ip_space', objectid.rsplit('/')[2], body)
+        api_response = api_instance.ip_space_list(filter=filterstr, inherit='full')
         return api_response
     except ApiException as e:
-        debug = {'msg':{'Message':'Exception when calling IpSpaceApi->ip_space_update with id {0}'.format(objectid.rsplit('/')[2]), 'Error':'{0}'.format(e)}}
+        debug = {'msg':{'Message':'csp_put - Exception when calling IpSpaceApi->ip_space_read with filter _inherit=full','Error':'{0}'.format(e)}}
         module.fail_json(**debug)
+
 
 def csp_post(module, api_instance, body):
+    # create does not return the full object ?_inherit=full so we need to read once more
+    # create with inheritance_sources does not take the value, only the override action
+    # so a update is required as well
     try:
-        # Read One Address object by name attribute
+        # Create the Object first
         api_response = api_instance.ip_space_create('ipam','ip_space',body)
-        return api_response
     except ApiException as e:
-        debug = {'msg':{'Message':'Exception when calling IpSpaceApi->ip_space_create', 'Error':'{0}'.format(e)}}
+        debug = {'msg':{'Message':'csp_post - Exception when calling IpSpaceApi->ip_space_create', 'Error':'{0}'.format(e)}}
+        module.fail_json(**debug)
+    
+    try:
+        # Read the Object with _inherit=full
+        api_response = api_instance.ip_space_list(filter=getfilter(module.params),inherit='full')
+    except ApiException as e:
+        debug = {'msg':{'Message':'csp_post - Exception when calling IpSpaceApi->ip_space_list with filter {0}'.format(filterstr),'Error':'{0}'.format(e)}}
         module.fail_json(**debug)
 
+    if len(api_response.results) > 0:
+        objectid = api_response.results[0].id.rsplit('/')[2]
+        body = module2IpamsvcIPSpace(module, api_response)
+        try:
+            # Update the Object
+            api_response = api_instance.ip_space_update('','', objectid ,body)
+            return api_response
+        except ApiException as e:
+            debug = {'msg':{'Message':'csp_post - Exception when calling IpSpaceApi->ip_space_update update of inheritance settings failed','Error':'{0}'.format(e)}}
+            module.fail_json(**debug)
+    else:
+        debug = {'msg':{'Message':'csp_post - Exception when calling IpSpaceApi->ip_space_create update of inheritance settings failed','Error':'{0}'.format(e)}}
+        module.fail_json(**debug)
+
+
 def getfilter(module_args):
-    # prepare GET Parameters for name
+    # prepare GET Parameters for name and request the inheritance_sources key
     filterstr = '{0}=="{1}"'.format('name', module_args['name'])
     return filterstr
 
-def module2IpamsvcIPSpace(module_args):
+def module2IpamsvcIPSpace(module, have=None):
+    module_args = module.params
     dhcp_options = None
-    if module_args['dhcp_options']:
+    dhcp_config = None
+    threshold = None
+    inheritance_sources = {}
+
+    if have != None:
+        inheritance_sources = have.results[0].inheritance_sources.to_dict()
+
+    if 'dhcp_options' in module_args:
         #transform
         dhcp_options = module_args['dhcp_options']
-    dhcp_config = None
-    if module_args['dhcp_config']:
+    
+    if 'dhcp_config' in module_args:
         #transform
         dhcp_config = module_args['dhcp_config']
-    inheritance_sources = None
-    if module_args['inheritance_sources']:
-        #transform
-        inheritance_sources = module_args['inheritance_sources']
-    threshold = None
-    if module_args['threshold']:
-        #transform
-        threshold = module_args['threshold']
+        for k,v in module_args['dhcp_config'].items():
+            # prevent uninitialized module paramenters
+            if 'dhcp_config' in inheritance_sources and v != None:
+                inheritance_sources['dhcp_config'][k]['action'] = 'override'
+                if k != 'lease_time':
+                    inheritance_sources['dhcp_config'][k]['value'] = v
+            else:
+                inheritance_sources['dhcp_config'][k]['action'] = 'inherit'
+
     # assign module arguments as named parameters (defaults are set)
     ipspace = IpamsvcIPSpace( comment=module_args['comment'],
                                             name=module_args['name'],
@@ -264,13 +345,16 @@ def module2IpamsvcIPSpace(module_args):
                                             inheritance_sources=inheritance_sources,
                                             threshold=threshold,
                                             tags=module_args['tags'] )
+    #debug = {'msg':{'ipspace':ipspace.to_dict()}}
+    #module.fail_json(**debug)
     return ipspace
 
 def isdifferent(module, have, want):
     # only look for differences in certain keys
     # IpamsvcIPSpace has a __eq__ , but it compares each field - even fields we can't set
     # so define the Fields of interest and compare them with a to_dict() variant
-    f = ['name','comment','tags']
+    # just some, which are toplevel
+    f = ['name','comment','tags','inheritance_sources']
     wantclean = {}
     haveclean = {}
     for k, v in want.to_dict().items():
@@ -282,9 +366,9 @@ def isdifferent(module, have, want):
     #debug = {'msg':{'want': str(wantclean), 'have':str(haveclean)}}
     #module.fail_json(**debug)
     if haveclean == wantclean:
-        return True
-    else:
         return False
+    else:
+        return True
 
 def main():
     run_module()

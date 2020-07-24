@@ -14,7 +14,7 @@
         name: 'MCCRU-Ansible'
         comment: 'MCC RU IP Space created through Ansible'
         tags:
-          country: 'RU'
+          Country: 'RU'
           company: 'MCC'
         dhcp_config:
           allow_unknown: true
@@ -36,7 +36,7 @@
         name: 'MCCRU-Ansible'
         comment: 'MCC RU IP Space created through Ansible'
         tags:
-          country: 'RU'
+          Country: 'RU'
           company: 'MCC'
         dhcp_config:
           allow_unknown: true
