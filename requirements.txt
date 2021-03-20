@@ -3,7 +3,7 @@ certifi==2020.6.20
 cffi==1.14.0
 cryptography==2.9.2
 ibcsp-ipamsvc @ git+https://github.com/uuand/ibcsp_ipamsvc.git@94a5475b11997551f732ceffcbd627d27ac37b2c
-Jinja2==2.11.2
+Jinja2==2.11.3
 MarkupSafe==1.1.1
 pkg-resources==0.0.0
 pycparser==2.20
